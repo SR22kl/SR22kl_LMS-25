@@ -33,13 +33,13 @@ export const clerkWebhooks = async (req, res) => {
           name: data.first_name + " " + data.last_name,
           imageUrl: data.user.imageUrl,
         };
-        await User.findByIdAndUpdate({ _id: data.id }, userData);
+        await User.findByIdAndUpdate(data.id, userData);
         res.json({});
         break;
       }
 
       case "user.deleted": {
-        await User.findByIdAndDelete({ _id: data.id });
+        await User.findByIdAndDelete(data.id);
         res.json({});
         break;
       }
