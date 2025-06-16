@@ -1,5 +1,8 @@
 import { Webhook } from "svix";
 import User from "../models/userModel.js";
+import Stripe from "stripe";
+import Purchase from "../models/purchaseModel.js";
+import Course from "../models/courseModel.js";
 
 // Api Controller Function to Manage Clerk User With Database
 
@@ -42,7 +45,6 @@ export const clerkWebhooks = async (req, res) => {
           name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
           imageUrl: data.image_url, // Clerk uses image_url, not user.imageUrl
         };
-        // Find the user by ID and update their information
         const updatedUser = await User.findByIdAndUpdate(data.id, userData, {
           new: true,
         });
@@ -53,7 +55,6 @@ export const clerkWebhooks = async (req, res) => {
             message: `User ${updatedUser._id} updated.`,
           });
         } else {
-          // If no user was found with the given ID
           console.warn(`User with ID ${data.id} not found for update.`);
           res.status(404).json({
             success: false,
@@ -64,14 +65,12 @@ export const clerkWebhooks = async (req, res) => {
       }
 
       case "user.deleted": {
-        // Attempt to delete the user by their Clerk ID
         const deletedUser = await User.findByIdAndDelete(data.id);
         if (deletedUser) {
           // If a user document was actually found and deleted
           console.log(`User deleted: ${data.id}`);
           res.json({ success: true, message: `User ${data.id} deleted.` });
         } else {
-          // If no user was found with the given ID (already deleted or never existed)
           console.warn(
             `User with ID ${data.id} not found for deletion (possibly already deleted or never existed).`
           );
@@ -92,12 +91,74 @@ export const clerkWebhooks = async (req, res) => {
         break;
     }
   } catch (error) {
-    // Log the full error for server-side debugging
     console.error(`Error processing Clerk webhook:`, error);
-    // Send a 500 internal server error response to Clerk
     res.status(500).json({
       success: false,
       message: "Internal server error processing webhook.",
     });
   }
+};
+
+const stripeInstance = new Stripe(process.env.STRIPE_SECRET_KEY);
+export const stripeWebhooks = async (request, response) => {
+  const sig = request.headers["stripe-signature"];
+
+  let event;
+
+  try {
+    event = Stripe.webhooks.constructEvent(
+      request.body,
+      sig,
+      process.env.STRIPE_WEBHOOD_SECRET
+    );
+  } catch (error) {
+    response.status(400).send(`Webhook Error: ${error.message}`);
+  }
+
+  //Handle the event
+  switch (event.type) {
+    case "payment_intent.succeeded": {
+      const paymentIntent = event.data.object;
+      const paymentIntentId = paymentIntent.id;
+
+      const session = await stripeInstance.checkout.sessions.list({
+        payment_intent: paymentIntentId,
+      });
+
+      const { purchaseId } = session.data[0].metadata;
+      const purchaseData = await Purchase.findById(purchaseId);
+      const userData = await User.findById(purchaseData.userId);
+      const courseData = await Course.findById(
+        purchaseData.courseId.toString()
+      );
+      courseData.enrolledStudents.push(userData);
+      await courseData.save();
+
+      userData.enrolledCourses.push(courseData._id);
+      await userData.save();
+
+      purchaseData.status = "completed";
+      await purchaseData.save();
+
+      break;
+    }
+    case "payment_intent.payment_failed": {
+      const paymentIntent = event.data.object;
+      const paymentIntentId = paymentIntent.id;
+      const session = await stripeInstance.checkout.sessions.list({
+        payment_intent: paymentIntentId,
+      });
+      const { purchaseId } = session.data[0].metadata;
+      
+      const purchaseData = await Purchase.findById(purchaseId);
+      purchaseData.status = "failed";
+      await purchaseData.save();
+      break;
+    }
+    //handle other event types
+    default:
+      console.log(`Unhandled event type: ${event.type}`);
+  }
+  //Return response to acknowledge receipt of the event
+  response.json({ received: true });
 };
