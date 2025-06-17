@@ -112,36 +112,75 @@ export const stripeWebhooks = async (request, response) => {
       process.env.STRIPE_WEBHOOD_SECRET
     );
   } catch (error) {
-    response.status(400).send(`Webhook Error: ${error.message}`);
+    console.log(`❌ Webhook Error: ${error.message}`);
+    return response.status(400).send(`Webhook Error: ${error.message}`);
   }
 
   //Handle the event
   switch (event.type) {
     case "payment_intent.succeeded": {
-      const paymentIntent = event.data.object;
-      const paymentIntentId = paymentIntent.id;
+      try {
+        const paymentIntentSucceeded = event.data.object;
+        const paymentIntentId = paymentIntentSucceeded.id;
 
-      const session = await stripeInstance.checkout.sessions.list({
-        payment_intent: paymentIntentId,
-      });
+        const sessionList = await stripeInstance.checkout.sessions.list({
+          payment_intent: paymentIntentId,
+        });
 
-      const { purchaseId } = session.data[0].metadata;
+        if (!sessionList.data || sessionList.data.length === 0) {
+          console.log(
+            `❌ No session found for payment_intent: ${paymentIntentId}`
+          );
+          return response.status(404).send("Session not found.");
+        }
 
-      const purchaseData = await Purchase.findById(purchaseId);
-      const userData = await User.findById(purchaseData.userId);
-      const courseData = await Course.findById(
-        purchaseData.courseId.toString()
-      );
+        const { purchaseId } = session.data[0].metadata;
 
-      courseData.enrolledStudents.push(userData);
-      await courseData.save();
+        if (!purchaseId) {
+          console.log(
+            `❌ purchaseId missing in metadata for session: ${sessionList.data[0].id}`
+          );
+          return response
+            .status(400)
+            .send("Purchase ID missing from metadata.");
+        }
 
-      userData.enrolledCourses.push(courseData._id);
-      await userData.save();
+        const purchaseData = await Purchase.findById(purchaseId);
+        if (!purchaseData) {
+          console.log(`❌ Purchase not found for ID: ${purchaseId}`);
+          return response.status(404).send("Purchase record not found.");
+        }
 
-      purchaseData.status = "completed";
-      await purchaseData.save();
+        const userData = await User.findById(purchaseData.userId);
+        if (!userData) {
+          console.log(`❌ User not found for ID: ${purchaseData.userId}`);
+          return response.status(404).send("User record not found.");
+        }
 
+        const courseData = await Course.findById(
+          purchaseData.courseId.toString()
+        );
+        if (!courseData) {
+          console.log(`❌ Course not found for ID: ${purchaseData.courseId}`);
+          return response.status(404).send("Course record not found.");
+        }
+
+        courseData.enrolledStudents.push(userData);
+        await courseData.save();
+
+        userData.enrolledCourses.push(courseData._id);
+        await userData.save();
+
+        purchaseData.status = "completed";
+        await purchaseData.save();
+      } catch (dbError) {
+        console.error(
+          `❌ Database operation error for payment_intent.succeeded: ${dbError.message}`
+        );
+        return response
+          .status(500)
+          .send(`Internal Server Error: ${dbError.message}`);
+      }
       break;
     }
     case "payment_intent.payment_failed": {
