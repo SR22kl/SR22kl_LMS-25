@@ -8,6 +8,7 @@ import { clerkMiddleware } from "@clerk/express";
 import connectCloudinary from "./configs/cloundinary.js";
 import courseRouter from "./routes/courseRoutes.js";
 import userRouter from "./routes/userRoutes.js";
+import bodyParser from "body-parser";
 
 //Initialize Express
 const app = express();
@@ -23,6 +24,14 @@ const PORT = process.env.PORT || 5000;
 
 //Middlewares
 app.use(cors());
+
+app.post(
+  "/stripe",
+  bodyParser.raw({ type: "application/json" }),
+  stripeWebhooks
+);
+console.log("Configured webhook route with raw body parser: /stripe");
+
 app.use(express.json());
 app.use(clerkMiddleware());
 
@@ -31,7 +40,6 @@ app.get("/", (req, res) => {
   res.send("Welcome to the API!");
 });
 app.post("/clerk", express.json(), clerkWebhooks);
-app.post("/stripe", express.raw({ type: "application/json" }), stripeWebhooks);
 app.use("/api/educator", educatorRouter);
 app.use("/api/course", courseRouter);
 app.use("/api/user", userRouter);
