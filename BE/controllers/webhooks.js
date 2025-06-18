@@ -134,7 +134,10 @@ export const stripeWebhooks = async (request, response) => {
           return response.status(404).send("Session not found.");
         }
 
-        const { purchaseId } = session.data[0].metadata;
+        // --- Applied changes ---
+        // Changed 'session.data[0].metadata' to 'sessionList.data[0].metadata'
+        // Also added `|| {}` for robustness in case metadata is null/undefined
+        const { purchaseId } = sessionList.data[0].metadata || {};
 
         if (!purchaseId) {
           console.log(
@@ -165,11 +168,24 @@ export const stripeWebhooks = async (request, response) => {
           return response.status(404).send("Course record not found.");
         }
 
-        courseData.enrolledStudents.push(userData);
-        await courseData.save();
+        // It's good practice to prevent duplicates if pushing objects/IDs directly
+        // Assuming enrolledStudents holds user IDs (Mongoose ObjectIds)
+        if (
+          !courseData.enrolledStudents
+            .map(String)
+            .includes(String(userData._id))
+        ) {
+          courseData.enrolledStudents.push(userData._id);
+          await courseData.save();
+        }
 
-        userData.enrolledCourses.push(courseData._id);
-        await userData.save();
+        // Assuming enrolledCourses holds course IDs (Mongoose ObjectIds)
+        if (
+          !userData.enrolledCourses.map(String).includes(String(courseData._id))
+        ) {
+          userData.enrolledCourses.push(courseData._id);
+          await userData.save();
+        }
 
         purchaseData.status = "completed";
         await purchaseData.save();
@@ -177,21 +193,55 @@ export const stripeWebhooks = async (request, response) => {
         console.error(
           `❌ Database operation error for payment_intent.succeeded: ${dbError.message}`
         );
-        return response
-          .status(500)
-          .send(`Internal Server Error: ${dbError.message}`);
+        // Return 200 to Stripe, but indicate internal server error
+        return response.status(200).json({
+          received: true,
+          error: `Internal Server Error: ${dbError.message}`,
+        });
       }
       break;
     }
     case "payment_intent.payment_failed": {
       const paymentIntent = event.data.object;
       const paymentIntentId = paymentIntent.id;
-      const session = await stripeInstance.checkout.sessions.list({
+
+      const sessionList = await stripeInstance.checkout.sessions.list({
         payment_intent: paymentIntentId,
       });
 
-      const { purchaseId } = session.data[0].metadata;
+      // --- FIX APPLIED HERE ---
+      // Changed 'session.data[0].metadata' to 'sessionList.data[0].metadata'
+      // Added check for empty sessionList.data before accessing [0]
+      if (!sessionList.data || sessionList.data.length === 0) {
+        console.log(
+          `❌ No session found for failed payment_intent: ${paymentIntentId}. Cannot update purchase status.`
+        );
+        return response
+          .status(404)
+          .send("Session not found for failed payment intent.");
+      }
+
+      const { purchaseId } = sessionList.data[0].metadata || {};
+
+      if (!purchaseId) {
+        console.log(
+          `❌ purchaseId missing in metadata for failed session: ${sessionList.data[0].id}. Cannot update purchase status.`
+        );
+        return response
+          .status(400)
+          .send("Purchase ID missing from metadata for failed payment.");
+      }
+
       const purchaseData = await Purchase.findById(purchaseId);
+      if (!purchaseData) {
+        console.log(
+          `❌ Purchase not found for ID: ${purchaseId} for failed payment.`
+        );
+        return response
+          .status(404)
+          .send("Purchase record not found for failed payment.");
+      }
+
       purchaseData.status = "failed";
       await purchaseData.save();
 
