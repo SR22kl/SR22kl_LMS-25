@@ -111,9 +111,11 @@ export const educatorDashboardData = async (req, res) => {
     res.status(200).json({
       success: true,
       message: "Educator Dashboard Data Fetched Successfully",
-      totalEarnings,
-      enrolledStudentsData,
-      totalCourses,
+      dasboardData: {
+        totalEarnings,
+        enrolledStudentsData,
+        totalCourses,
+      },
     });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

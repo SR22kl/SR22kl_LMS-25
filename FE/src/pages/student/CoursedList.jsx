@@ -60,7 +60,7 @@ const CoursedList = () => {
               Try searching for a different course.
             </p>
             <button
-              onClick={() => navigate("/course-list")}
+              onClick={() => navigate("/")}
               className="text-gray-800 cursor-pointer "
             >
               &#8592; back

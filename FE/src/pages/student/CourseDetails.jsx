@@ -6,6 +6,8 @@ import { assets } from "../../assets/assets";
 import humanizeDuration from "humanize-duration";
 import Footer from "../../components/student/Footer";
 import YouTube from "react-youtube";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 const CourseDetails = () => {
   const { id } = useParams();
@@ -13,8 +15,9 @@ const CourseDetails = () => {
   const [openSection, setOpenSection] = useState({});
   const [isEnroll, setIsEnroll] = useState(false);
   const [playerData, setPlayerData] = useState(null);
+  const [btnLoading, setBtnLoading] = useState(false);
 
-  console.log(playerData);
+  console.log(courseData)
 
   const {
     allcourses,
@@ -23,18 +26,73 @@ const CourseDetails = () => {
     calculateNoOfLectures,
     calculateCourseDuration,
     currency,
+    BeUrl,
+    userData,
+    getToken,
   } = useContext(AppContext);
 
   // Find the course with the matching ID
   const fetchCourseData = async () => {
-    const findcourse = allcourses.find((course) => course._id === id);
-    setCourseData(findcourse);
+    try {
+      const { data } = await axios.get(`${BeUrl}/api/course/${id}`);
+      if (data.success) {
+        setCourseData(data.courseData);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  const enrollCourse = async () => {
+    setBtnLoading(true);
+    try {
+      if (!userData) {
+        return toast.warn("Please Login First To Enroll!");
+      }
+      if (isEnroll) {
+        return toast.warn("Already Enrolled!");
+      }
+
+      console.log("Course ID to be sent:", courseData?._id);
+
+      const token = await getToken();
+
+      const { data } = await axios.post(
+        `${BeUrl}/api/user/purchase`,
+        {
+          courseId: courseData._id,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (data.success) {
+        const { url } = data;
+        window.location.replace(url);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setBtnLoading(false);
+    }
   };
 
   // Fetch course data when component mounts
   useEffect(() => {
     fetchCourseData();
-  }, [id, allcourses]);
+  }, []);
+
+  useEffect(() => {
+    if (userData && courseData) {
+      setIsEnroll(userData.enrolledCourses.includes(courseData._id));
+    }
+  }, [userData, courseData]);
 
   // Toggle section open/close
   const toggleSection = (index) => {
@@ -79,17 +137,19 @@ const CourseDetails = () => {
               ))}
             </div>
             <p className="text-blue-600">
-              ({courseData.courseRatings.length}&nbsp;
-              {courseData.courseRatings.length > 1 ? "Ratings" : "Rating"})
+              ({courseData?.courseRatings?.length}&nbsp;
+              {courseData?.courseRatings?.length > 1 ? "Ratings" : "Rating"})
             </p>
             <p>
-              {courseData.enrolledStudents.length}{" "}
-              {courseData.enrolledStudents.length > 1 ? "Students" : "Student"}
+              {courseData?.enrolledStudents?.length}{" "}
+              {courseData?.enrolledStudents?.length > 1
+                ? "Students"
+                : "Student"}
             </p>
           </div>
           <p className="text-sm">
             Course By{" "}
-            <span className="text-blue-600 underline">Tunnel-Rat</span>
+            <span className="text-blue-600 underline">{courseData?.educator?.name || "Tunnel-Rat"}</span>
           </p>
           <div className="pt-8 text-gray-800">
             <h2 className="text-xl font-semibold">Course Structure</h2>
@@ -245,7 +305,11 @@ const CourseDetails = () => {
             </div>
 
             <div className="items-center justify-center">
-              <button className="bg-violet-500 md:mt-6 mt-4 text-white w-full rounded font-medium py-3 cursor-pointer hover:opacity-90 duration-200 ease-in">
+              <button
+                onClick={enrollCourse}
+                disabled={btnLoading}
+                className="bg-violet-500 md:mt-6 mt-4 text-white w-full rounded font-medium py-3 cursor-pointer hover:opacity-90 duration-200 ease-in"
+              >
                 {isEnroll ? "Already Enrolled" : "Enroll Now"}
               </button>
 

@@ -1,18 +1,31 @@
 import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../context/AppContext";
 import Loading from "../../components/student/Loading";
+import { toast } from "react-toastify";
+import axios from "axios";
 
 const MyCources = () => {
-  const { currency, allcourses } = useContext(AppContext);
+  const { currency, BeUrl, iseducator, getToken } = useContext(AppContext);
   const [courses, setCourses] = useState(null);
+  console.log(courses)
 
   const fetchEducatorCourses = async () => {
-    setCourses(allcourses);
+    try {
+      const token = await getToken();
+      const { data } = await axios.get(`${BeUrl}/api/educator/courses`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      data.success && setCourses(data.courses);
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   useEffect(() => {
-    fetchEducatorCourses();
-  }, []);
+    if (iseducator) {
+      fetchEducatorCourses();
+    }
+  }, [iseducator]);
 
   return courses ? (
     <>
@@ -38,26 +51,26 @@ const MyCources = () => {
                     <td className="md:px-4 pl-2 md:pl-4 py-3 flex items-center space-x-3 truncate">
                       <img
                         className="w-16"
-                        src={course.courseThumbnail}
+                        src={course?.courseThumbnail}
                         alt=""
                       />
                       <span className="truncate hidden md:block">
-                        {course.courseTitle}
+                        {course?.courseTitle}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       {currency}{" "}
                       {Math.floor(
-                        course.enrolledStudents.length *
-                          (course.coursePrice -
-                            (course.discount * course.coursePrice) / 100)
+                        course?.enrolledStudents?.length *
+                          (course?.coursePrice -
+                            (course?.discount * course?.coursePrice) / 100)
                       )}
                     </td>
                     <td className="px-4 py-3 ">
-                      {course.enrolledStudents.length}
+                      {course?.enrolledStudents?.length}
                     </td>
                     <td className="px-4 py-3 truncate">
-                      {new Date(course.createdAt).toLocaleDateString()}
+                      {new Date(course?.createdAt).toLocaleDateString()}
                     </td>
                   </tr>
                 ))}

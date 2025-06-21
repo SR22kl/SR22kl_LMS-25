@@ -2,18 +2,25 @@ import Quill from "quill";
 import { useEffect, useRef, useState } from "react";
 import { assets } from "../../assets/assets";
 import uniqid from "uniqid";
+import { useContext } from "react";
+import { AppContext } from "../../context/AppContext.jsx";
+import { toast } from "react-toastify";
+import axios from "axios";
 
 const AddCourse = () => {
   const quillRef = useRef(null);
   const editorRef = useRef(null);
 
+  const { BeUrl, getToken } = useContext(AppContext);
+
   const [courseTitle, setCourseTitle] = useState("");
   const [coursePrice, setCoursePrice] = useState(0);
-  const [discout, setDiscout] = useState(0);
-  const [imgae, setImage] = useState(null);
+  const [discount, setDiscount] = useState(0);
+  const [image, setImage] = useState(null);
   const [chapters, setChapters] = useState([]);
   const [showPopup, setShowPopup] = useState(false);
   const [currentchapeterId, setCurrentChapterId] = useState(null);
+  const [btnLoading, setBtnLoading] = useState(false);
 
   const [lectureDetails, setLectureDetails] = useState({
     lectureTitle: "",
@@ -95,8 +102,53 @@ const AddCourse = () => {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setBtnLoading(true);
+    try {
+      if (!image) {
+        toast.error("Thumbnail is required");
+        return;
+      }
+      const courseData = {
+        courseTitle,
+        courseDescription: quillRef.current.root.innerHTML,
+        coursePrice: Number(coursePrice),
+        discount: Number(discount),
+        courseContent: chapters,
+      };
+
+      const formData = new FormData();
+      formData.append("courseData", JSON.stringify(courseData));
+      formData.append("image", image);
+
+      const token = await getToken();
+      const { data } = await axios.post(
+        `${BeUrl}/api/educator/add-course`,
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      if (data.success) {
+        toast.success(data.message);
+        setCourseTitle("");
+        setCoursePrice(0);
+        setDiscount(0);
+        setImage(null);
+        setChapters([]);
+        quillRef.current.root.innerHTML = "";
+        setShowPopup(false);
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    } finally {
+      setBtnLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -161,7 +213,7 @@ const AddCourse = () => {
                 />
                 <img
                   className="max-h-10"
-                  src={imgae ? URL.createObjectURL(imgae) : ""}
+                  src={image ? URL.createObjectURL(image) : ""}
                   alt=""
                 />
               </label>
@@ -171,8 +223,8 @@ const AddCourse = () => {
           <div className="flex flex-col gap-1 mt-2">
             <p>Discount %</p>
             <input
-              onChange={(e) => setDiscout(e.target.value)}
-              value={discout}
+              onChange={(e) => setDiscount(e.target.value)}
+              value={discount}
               type="number"
               placeholder="0"
               min={0}
@@ -354,10 +406,11 @@ const AddCourse = () => {
             )}
           </div>
           <button
-            className="bg-black text-white w-max py-2.5 px-8 rounded my-4"
+            className="bg-black text-white w-max py-2.5 px-8 rounded my-4 cursor-pointer"
             type="submit"
+            disabled={btnLoading}
           >
-            ADD
+            {btnLoading ? "Adding..." : "Add Course"}
           </button>
         </form>
       </div>

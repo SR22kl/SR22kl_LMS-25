@@ -96,6 +96,11 @@ export const purchaseCourse = async (req, res) => {
 
     res.status(200).json({ success: true, url: session.url });
   } catch (error) {
+    console.error(
+      "*** Backend Caught an UNEXPECTED Error in /api/user/purchase:",
+      error
+    );
+
     res.status(500).json({ success: false, message: error.message });
   }
 };

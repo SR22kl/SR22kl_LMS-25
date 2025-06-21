@@ -1,17 +1,41 @@
 import { useEffect, useState } from "react";
 import { dummyStudentEnrolled } from "../../assets/assets";
 import Loading from "../../components/student/Loading";
+import { useContext } from "react";
+import { AppContext } from "../../context/AppContext.jsx";
+import { toast } from "react-toastify";
+import axios from "axios";
 
 const StudentsEnrolled = () => {
+  const { BeUrl, iseducator, getToken } = useContext(AppContext);
+
   const [enrolledStudents, setEnrolledStudents] = useState(null);
+  console.log(enrolledStudents);
 
   const fetchEnrolledStudents = async () => {
-    setEnrolledStudents(dummyStudentEnrolled);
+    try {
+      const token = await getToken();
+      const { data } = await axios.get(
+        `${BeUrl}/api/educator/enrolled-students`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (data.success) {
+        setEnrolledStudents(data.enrolledStudents.reverse());
+      }else{
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
   };
 
   useEffect(() => {
-    fetchEnrolledStudents();
-  }, [enrolledStudents]);
+    if (iseducator) {
+      fetchEnrolledStudents();
+    }
+  }, [iseducator]);
 
   console.log(enrolledStudents);
 
@@ -43,7 +67,7 @@ const StudentsEnrolled = () => {
                   </td>
                   <td className="flex items-center gap-2 px-4 py-3">
                     <img
-                      className="w-6"
+                      className="w-6 rounded-[50%]"
                       src={students.student.imageUrl}
                       alt=""
                     />

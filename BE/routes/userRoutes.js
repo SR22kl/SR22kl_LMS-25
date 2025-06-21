@@ -20,12 +20,12 @@ userRouter.get("/enrolled-courses", getEnrolledCourses);
 userRouter.post("/purchase", purchaseCourse);
 
 //Update user course - api/user/update-course
-userRouter.put("/update-course-progress", updateUserCourseProgress);
+userRouter.post("/update-course-progress", updateUserCourseProgress);
 
-//Get user course progress - api/user/course-progress
-userRouter.put("/get-course-progress", getUserCourseProgress);
+//Get user course progress - api/user/get-course-progress
+userRouter.post("/get-course-progress", getUserCourseProgress);
 
 //Add Course Ratings - api/user/course-rating
-userRouter.put("/add-rating", addUserRating);
+userRouter.post("/add-rating", addUserRating);
 
 export default userRouter;

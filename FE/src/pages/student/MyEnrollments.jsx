@@ -1,33 +1,69 @@
-import { useContext, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { AppContext } from "../../context/AppContext";
 import { useNavigate } from "react-router-dom";
 import { Line } from "rc-progress";
 import Footer from "../../components/student/Footer";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 const MyEnrollments = () => {
-  const { enrollCourses, calculateCourseDuration } = useContext(AppContext);
-  const [progressArray, setProgressArray] = useState([
-    { lectureCompleted: 2, totalLectures: 4 },
-    { lectureCompleted: 1, totalLectures: 4 },
-    { lectureCompleted: 3, totalLectures: 6 },
-    { lectureCompleted: 4, totalLectures: 4 },
-    { lectureCompleted: 0, totalLectures: 3 },
-    { lectureCompleted: 5, totalLectures: 7 },
-    { lectureCompleted: 6, totalLectures: 8 },
-    { lectureCompleted: 2, totalLectures: 6 },
-    { lectureCompleted: 4, totalLectures: 10 },
-    { lectureCompleted: 3, totalLectures: 5 },
-    { lectureCompleted: 7, totalLectures: 7 },
-    { lectureCompleted: 1, totalLectures: 4 },
-    { lectureCompleted: 0, totalLectures: 2 },
-    { lectureCompleted: 5, totalLectures: 5 },
-  ]);
+  const {
+    enrollCourses,
+    calculateCourseDuration,
+    userData,
+    getToken,
+    fetchEnrolledCourses,
+    BeUrl,
+    calculateNoOfLectures,
+  } = useContext(AppContext);
+  const [progressArray, setProgressArray] = useState([]);
+
+  const getCourseProgress = async () => {
+    try {
+      const token = await getToken();
+      const tempProgressArray = await Promise.all(
+        enrollCourses.map(async (course) => {
+          const { data } = await axios.post(
+            `${BeUrl}/api/user/get-course-progress`,
+            {
+              courseId: course._id,
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+          let totalLectures = calculateNoOfLectures(course);
+
+          const lectureCompleted = data.progressData
+            ? data.progressData.lectureCompleted.length
+            : 0;
+
+          return { totalLectures, lectureCompleted };
+        })
+      );
+      setProgressArray(tempProgressArray);
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
+
+  useEffect(() => {
+    fetchEnrolledCourses();
+  }, [userData]);
+
+  useEffect(() => {
+    if (enrollCourses.length > 0) {
+      getCourseProgress();
+    }
+  }, [enrollCourses]);
 
   const navigate = useNavigate();
 
   return (
     <>
-      <div className="md:px-36 px-8 pt-10">
+      <div className="md:px-36 px-8 pt-10 md:mb-[100px] mb-[200px]">
         <h1 className="text-2xl font-semibold">My Enrollments</h1>
         <table className="md:table-auto table-fixed w-full overflow-hidden border border-gray-500/30 mt-10">
           <thead className="text-gray-900 border-b border-gray-500/20 text-sm text-left max-sm:hidden">

@@ -3,6 +3,8 @@ import { assets } from "../../assets/assets";
 import { useClerk, useUser, UserButton } from "@clerk/clerk-react";
 import { useContext } from "react";
 import { AppContext } from "../../context/AppContext";
+import axios from "axios";
+import { toast } from "react-toastify";
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -11,7 +13,29 @@ const Navbar = () => {
   const { openSignIn } = useClerk();
   const { user } = useUser();
 
-  const { iseducator, setisEducator } = useContext(AppContext);
+  const { iseducator, setisEducator, BeUrl, getToken } = useContext(AppContext);
+
+  const becomeEducator = async () => {
+    try {
+      if (iseducator) {
+        navigate("/educator");
+        return;
+      }
+      const token = await getToken();
+      const { data } = await axios.get(`${BeUrl}/api/educator/update-role`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data.success) {
+        setisEducator(true);
+        toast.success(data.message);
+        navigate("/educator");
+      } else {
+        toast.error(data.message);
+      }
+    } catch (error) {
+      toast.error(error.message);
+    }
+  };
 
   return (
     <>
@@ -31,10 +55,7 @@ const Navbar = () => {
           <div className="flex items-center gap-5">
             {user && (
               <>
-                <button
-                  onClick={() => navigate("/educator")}
-                  className="cursor-pointer"
-                >
+                <button onClick={becomeEducator} className="cursor-pointer">
                   {iseducator ? "Educator Dasboard" : "Become Educator"}
                 </button>
                 | <Link to={"/my-enrollments"}>My Enrollments</Link>
@@ -59,10 +80,7 @@ const Navbar = () => {
           <div className="flex items-center gap-1 sm:gap-2 max-sm:text-xs">
             {user && (
               <>
-                <button
-                  onClick={() => navigate("/educator")}
-                  className="cursor-pointer"
-                >
+                <button onClick={becomeEducator} className="cursor-pointer">
                   {iseducator ? "Educator Dasboard" : "Become Educator"}
                 </button>
                 | <Link to={"/my-enrollments"}>My Enrollments</Link>

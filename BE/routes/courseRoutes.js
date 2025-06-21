@@ -6,7 +6,7 @@ import {
 
 const courseRouter = express.Router();
 
-// Get All Courses- /api/courses/all-courses
+// Get All Courses- /api/course/all
 courseRouter.get("/all", getAllCourses);
 
 //Get Course by Id- /api/course/:id

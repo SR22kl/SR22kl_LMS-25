@@ -10,9 +10,10 @@ import Mycourse from "./pages/educator/MyCources";
 import Addcourse from "./pages/educator/AddCourse";
 import Dashboard from "./pages/educator/Dashboard";
 import StudentsEnroll from "./pages/educator/StudentsEnrolled";
+import { ToastContainer, toast } from "react-toastify";
 
 import Navbar from "./components/student/Navbar";
-import "quill/dist/quill.snow.css"; 
+import "quill/dist/quill.snow.css";
 
 const App = () => {
   const isEducatorRoute = useMatch("/educator/*");
@@ -20,6 +21,7 @@ const App = () => {
   return (
     <>
       <div className="text-default min-h-screen bg-white">
+        <ToastContainer />
         {/* Render Navbar only if not on Educator routes */}
         {!isEducatorRoute && <Navbar />}
 
