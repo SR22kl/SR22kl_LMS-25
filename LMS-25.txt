@@ -1,0 +1,30 @@
+LMS:-
+
+username: sbrathod22kl
+password: LmSA8Jaeeny102Op
+
+MongoDbCompass: 
+
+mongodb+srv://sbrathod22kl:LmSA8Jaeeny102Op@cluster0.giyulej.mongodb.net/
+
+mongodb+srv://sbrathod22kl:LmSA8Jaeeny102Op@cluster0.giyulej.mongodb.net/
+
+new password: 007360Lms
+
+//remove "/" at the end in .env MONGODB_URI
+
+
+Derkytt090934
+
+
+
+
+
+
+
+
+
+
+
+
+

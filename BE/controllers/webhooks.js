@@ -24,11 +24,10 @@ export const clerkWebhooks = async (req, res) => {
     switch (type) {
       case "user.created": {
         const userData = {
-          _id: data.id, // Clerk's user ID as MongoDB's _id
+          _id: data.id,
           email: data.email_addresses[0].email_address,
-          // Construct full name, handling cases where first or last name might be missing
           name: `${data.first_name || ""} ${data.last_name || ""}`.trim(),
-          imageUrl: data.image_url, // Clerk uses image_url, not user.imageUrl
+          image: data.image_url,
         };
         // Attempt to create the user in the database
         const newUser = await User.create(userData);

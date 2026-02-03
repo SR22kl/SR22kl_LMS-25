@@ -47,7 +47,7 @@ const AddCourse = () => {
       }
     } else if (action === "remove") {
       setChapters(
-        chapters.filter((chapter) => chapter.chapterId !== chapterId)
+        chapters.filter((chapter) => chapter.chapterId !== chapterId),
       );
     } else if (action === "toggle") {
       setChapters(
@@ -55,7 +55,7 @@ const AddCourse = () => {
           return chapter.chapterId === chapterId
             ? { ...chapter, collapsed: !chapter.collapsed }
             : chapter;
-        })
+        }),
       );
     }
   };
@@ -71,7 +71,7 @@ const AddCourse = () => {
             chapter.chapterContent.splice(lectureIndex, 1);
           }
           return chapter;
-        })
+        }),
       );
     }
   };
@@ -91,7 +91,7 @@ const AddCourse = () => {
           chapter.chapterContent.push(newLecture);
         }
         return chapter;
-      })
+      }),
     );
     setShowPopup(false);
     setLectureDetails({
@@ -110,12 +110,24 @@ const AddCourse = () => {
         toast.error("Thumbnail is required");
         return;
       }
+
+      // Process chapters to convert lectureDuration to number
+      const processedChapters = chapters.map((chapter) => ({
+        ...chapter,
+        chapterContent: chapter.chapterContent.map((lecture) => ({
+          ...lecture,
+          lectureDuration: Number(
+            lecture.lectureDuration.toString().match(/\d+/)?.[0] || 0,
+          ),
+        })),
+      }));
+
       const courseData = {
         courseTitle,
         courseDescription: quillRef.current.root.innerHTML,
         coursePrice: Number(coursePrice),
         discount: Number(discount),
-        courseContent: chapters,
+        courseContent: processedChapters,
       };
 
       const formData = new FormData();
@@ -130,7 +142,7 @@ const AddCourse = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       if (data.success) {
         toast.success(data.message);
@@ -295,7 +307,7 @@ const AddCourse = () => {
                             handleLecture(
                               "remove",
                               chapter.chapterId,
-                              lectureIndex
+                              lectureIndex,
                             )
                           }
                           src={assets.cross_icon}
