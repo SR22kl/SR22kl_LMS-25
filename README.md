@@ -2,7 +2,7 @@
 
 A full-stack Learning Management System (LMS) built with modern web technologies. It enables educators to create and manage courses, and students to enroll and learn from these courses with integrated payment processing.
 
-![LMS25 Preview](./preview/preview1.png) <!-- Replace with actual screenshot -->
+![LMS25 Preview](./preview/preview2.png) <!-- Replace with actual screenshot -->
 
 ## 📋 Table of Contents
 
