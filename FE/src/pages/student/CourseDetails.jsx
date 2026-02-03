@@ -17,7 +17,7 @@ const CourseDetails = () => {
   const [playerData, setPlayerData] = useState(null);
   const [btnLoading, setBtnLoading] = useState(false);
 
-  console.log(courseData)
+  console.log(courseData);
 
   const {
     allcourses,
@@ -68,7 +68,7 @@ const CourseDetails = () => {
           headers: {
             Authorization: `Bearer ${token}`,
           },
-        }
+        },
       );
       if (data.success) {
         const { url } = data;
@@ -149,7 +149,9 @@ const CourseDetails = () => {
           </div>
           <p className="text-sm">
             Course By{" "}
-            <span className="text-blue-600 underline">{courseData?.educator?.name || "Tunnel-Rat"}</span>
+            <span className="text-blue-600 underline">
+              {courseData?.educator?.name || "Tunnel-Rat"}
+            </span>
           </p>
           <div className="pt-8 text-gray-800">
             <h2 className="text-xl font-semibold">Course Structure</h2>
@@ -205,7 +207,8 @@ const CourseDetails = () => {
                                     setPlayerData({
                                       videoId: lecture.lectureUrl
                                         .split("/")
-                                        .pop(),
+                                        .pop()
+                                        .split("?")[0],
                                     });
                                     window.scrollTo(0, 0); // Add this line
                                   }}
@@ -217,7 +220,7 @@ const CourseDetails = () => {
                               <p className="md:text-base text-[11px] md:mt-0 mt-[5px]">
                                 {humanizeDuration(
                                   lecture.lectureDuration * 60 * 1000,
-                                  { units: ["h", "m"] }
+                                  { units: ["h", "m"] },
                                 )}
                               </p>
                             </div>
